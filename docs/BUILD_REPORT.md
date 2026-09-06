@@ -107,7 +107,9 @@ Only the Settings "Upgrade" button and the two `/api/stripe/*` routes. Nothing e
 
 ## Data that still needs real official verification
 
-**All of it.** Every institution, program, and requirement in `src/lib/seed-data.ts` is fictional development data, clearly labeled as such in the UI (`SampleDataNotice`) and in `docs/DATA_VERIFICATION.md`. Before any real user relies on this product, real requirements must go through the admin verification workflow described there — official source URL, excerpt, reviewer, verified date — for every single program a real student might search for. Do not point real students at this deployment's current data.
+**Update:** the live database now also has 8 real programs (one Computer Science / closest-equivalent program each at UBC, SFU, University of Toronto, McMaster, McGill, Queen's, Western, and Langara College), researched directly from each institution's official admissions pages, each with a real `source_snapshots` row (URL + excerpt + date). They're marked `needs_review`, not `verified` — an AI assistant did the research pass and sourced everything from official pages, but a human (you) should do a quick confirmation glance against each source before flipping any of them to `verified`. McMaster's entry is the least certain — its real admission tool is an interactive per-applicant widget I couldn't fully extract, so it's flagged explicitly in its own notes row. The three original fictional institutions (Cascade/Harborview/Northern Ridge University) have been deactivated (`active = false`, not deleted) in the **live database only** — `/demo` is untouched and still runs entirely on `src/lib/seed-data.ts`'s fictional fixtures, as designed.
+
+**Still fictional / not yet done:** every program beyond those 8 (the vast majority of real Canadian university programs), and any non-Computer-Science program at the 8 institutions above. Before pointing more real students at this, keep working through the admin verification workflow in `docs/DATA_VERIFICATION.md` — official source URL, excerpt, reviewer, verified date — for whatever programs your actual test users search for next.
 
 ## Recommended first user test
 

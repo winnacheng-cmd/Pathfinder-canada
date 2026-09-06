@@ -7,7 +7,6 @@ import { getStudentCourseInputs } from "@/lib/queries/student-courses";
 import { getProgramDetail, getSavedProgramIds } from "@/lib/queries/programs";
 import { EligibilityBadge } from "@/components/EligibilityBadge";
 import { RequirementRow } from "@/components/RequirementRow";
-import { SampleDataNotice } from "@/components/SampleDataNotice";
 import { SaveProgramButton } from "@/features/programs/SaveProgramButton";
 import { ReportIssueDialog } from "@/features/programs/ReportIssueDialog";
 
@@ -45,7 +44,6 @@ export default async function ProgramDetailPage({
   return (
     <div className="max-w-3xl space-y-8">
       <div className="space-y-3">
-        <SampleDataNotice />
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h1 className="text-2xl font-semibold tracking-tight">{detail.program.name}</h1>

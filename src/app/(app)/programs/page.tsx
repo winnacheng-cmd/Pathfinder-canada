@@ -8,7 +8,6 @@ import { getRequirementsForPrograms, getSavedProgramIds, searchPrograms } from "
 import { ProgramFilterBar } from "@/features/programs/ProgramFilterBar";
 import { ProgramCard } from "@/components/ProgramCard";
 import { EmptyState } from "@/components/EmptyState";
-import { SampleDataNotice } from "@/components/SampleDataNotice";
 import { SearchX } from "lucide-react";
 import type { SubjectArea } from "@/types/database";
 
@@ -71,7 +70,6 @@ export default async function ProgramsPage({
           Search Canadian university programs and see how your profile compares.
         </p>
       </div>
-      <SampleDataNotice />
       <ProgramFilterBar />
       <Suspense fallback={<p className="text-sm text-muted-foreground">Loading…</p>}>
         <ProgramResults q={q} subject={subject} />
