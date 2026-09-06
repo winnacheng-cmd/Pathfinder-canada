@@ -5,7 +5,11 @@
  *
  * Usage: npm run seed   (requires SUPABASE_SERVICE_ROLE_KEY in .env.local)
  */
-import "dotenv/config";
+// Plain `dotenv/config` only loads `.env` by default — Next.js's own
+// convention of `.env.local` (which is what README.md tells you to create)
+// is invisible to a standalone script unless told explicitly.
+import { config } from "dotenv";
+config({ path: ".env.local" });
 import { createClient } from "@supabase/supabase-js";
 import {
   courses,

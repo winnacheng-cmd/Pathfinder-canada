@@ -2,6 +2,8 @@
 
 Built in one continuous session per the plan in `docs/PRODUCT.md`/`CLAUDE.md`. ~11,500 lines of TypeScript across 151 source files, 25 routes, 66 passing Vitest unit tests, and a Playwright e2e suite that actually runs.
 
+**Update — live deployment verification:** the app has since been deployed to Vercel and connected to a real Supabase project by the founder, with my help. Everything in this report originally marked "not live-tested" has now been exercised end-to-end against that real project (see "Live verification" below) — this is no longer a gap.
+
 ## What was built
 
 The full Phase-1 MVP from the product spec:
@@ -59,7 +61,23 @@ Landing page, `/demo` (full eligibility/action-plan/what-if experience), `/metho
 
 ## What requires Supabase
 
-Everything personalized: signup/login, onboarding, courses, program search/detail's *personalized* status, dashboard, targets, simulator persistence, action plan, application plan, settings, admin, both non-demo Playwright specs. **Migrations have not been run against a live database** — no Docker was available in this environment to run a local Supabase stack, and no hosted project credentials were provided. They're syntax-valid (checked against the real Postgres grammar) and carefully reviewed, but RLS policy *behavior* (not just syntax) needs a live smoke test — see below.
+Everything personalized: signup/login, onboarding, courses, program search/detail's *personalized* status, dashboard, targets, simulator persistence, action plan, application plan, settings, admin. Now live-verified — see "Live verification" below.
+
+## Live verification (post-deploy)
+
+Once the founder created a real Supabase project and Vercel deployment, the following was exercised against the live project, not just reasoned about:
+
+- **Migrations**: all 4 files run successfully via the Supabase SQL Editor (combined into one script for convenience). Verified via direct REST calls that `courses`, `program_requirements`, and `billing_entitlements` all exist and are queryable.
+- **Seed data**: `npm run seed` pushed all fixtures successfully (3 institutions, 25 courses, 15 programs, 49 requirements, 15 sources, 7 supplementals) — confirmed readable via the public REST API.
+- **RLS, for real**: queried `student_profiles`, `saved_programs`, and `profiles` via the anon key with no session — all three returned `[]`, confirming anonymous/cross-user access is actually blocked, not just intended. This was risk #1 below; it's resolved.
+- **Full signup → onboarding → dashboard flow**: created a real test account, stepped through all 6 onboarding steps against the live course/program catalog, and landed on a dashboard showing correct real-data-driven priority actions (missing English Studies 12, missing Pre-Calculus 12, a supplemental deadline) — matching what the domain engine should produce for that exact input.
+- **Admin dashboard**: promoted the test account to `role='admin'` via direct DB write and confirmed `/admin` renders the verification queue with correct live counts (1 stale, 1 needs-review, 1 missing-source, 2 expiring-soon) matching the seeded data's deliberate trust-state mix.
+- **Account deletion cascade**: deleted the test account via `auth.admin.deleteUser()` and confirmed its `student_profiles` row was removed by the `ON DELETE CASCADE`, not left orphaned.
+
+Three real bugs were found and fixed during this process (all committed):
+1. `new URL(process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000")` crashed the Vercel build with `ERR_INVALID_URL` because Vercel had the variable declared but empty, and `??` doesn't catch empty strings. Fixed by centralizing the fallback in `lib/env.ts::getAppUrl()`, using `||` instead.
+2. `supabase/seed/seed.ts` used plain `dotenv/config`, which only loads `.env` — invisible to `.env.local`, the file the README itself tells you to create. The seed script failed with "missing env vars" even with a correct `.env.local`. Fixed to load `.env.local` explicitly.
+3. Supabase's default "Confirm email" setting meant `signUp()` returned a user but no session, and the app silently redirected to `/onboarding`, which then bounced to `/login` with zero explanation. Fixed `signUpAction` to detect the missing session and show a clear "check your email" message instead.
 
 ## What requires an AI key
 
@@ -80,11 +98,12 @@ Only the Settings "Upgrade" button and the two `/api/stripe/*` routes. Nothing e
 
 ## Remaining production risks
 
-1. **RLS has not been exercised against a live database.** Migrations are syntax-checked, not behavior-tested. Run the migrations against a real Supabase project and manually verify: a student can't read another student's `student_profiles`/`student_courses`/`saved_programs`; a non-admin can't write to `institutions`/`programs`/`program_requirements`; the `on_auth_user_created` trigger actually fires.
-2. **Admin bootstrap depends on signup order.** `ADMIN_EMAILS` is only consulted inside the signup server action, so promoting an *already-existing* account requires a direct database update — document this for whoever sets up the first admin.
+1. ~~RLS has not been exercised against a live database.~~ **Resolved** — see "Live verification" above.
+2. **Admin bootstrap depends on signup order.** `ADMIN_EMAILS` is only consulted inside the signup server action, so promoting an *already-existing* account requires a direct database update — document this for whoever sets up the first admin. (Worked around manually during live verification via a direct `profiles.role` update.)
 3. **No rate limiting** on `/api/ai/explain` or `/api/export` — fine for an MVP with no traffic, not fine before any public launch.
 4. **Program comparison and search are simple** (client-side filtering of a small in-memory list) — will need real server-side pagination once the catalog grows past a few hundred programs.
 5. **Deleting an admin account with audit history is blocked** by the `admin_audit_log` foreign key (by design, to preserve accountability records) — the delete action surfaces a clear message rather than crashing, but there's no self-service resolution path yet.
+6. **Supabase's shared email sender is rate-limited to 2 emails/hour** and is not meant for production use. Before real users sign up, configure a custom SMTP provider (Resend, Postmark, etc.) under Supabase's Auth settings — see the Custom SMTP guide in Supabase's docs.
 
 ## Data that still needs real official verification
 
@@ -96,7 +115,7 @@ Run `docs/USER_TESTING.md`'s script with 3-5 real BC Grade 11/12 students using 
 
 ## Recommended next five improvements
 
-1. Connect a real Supabase project and run the live RLS/auth Playwright specs — the one thing this build genuinely could not verify itself.
+1. Configure a custom SMTP provider in Supabase so real users don't hit the 2-emails/hour shared-sender limit.
 2. Replace the fictional seed data with 15-30 real, admin-verified BC program requirements before showing this to real students.
 3. Add rate limiting to `/api/ai/explain` and `/api/export` before any public deployment.
 4. Build the second-reviewer step in the source-verification workflow (`docs/DATA_VERIFICATION.md` mentions it as a later step).
@@ -111,7 +130,7 @@ Run `docs/USER_TESTING.md`'s script with 3-5 real BC Grade 11/12 students using 
 - **Can the student see what action changes their options?** Yes — action engine ranks by affected-program count; what-if simulator shows the diff live.
 - **Can a student experiment without changing their real profile?** Yes — the simulator operates on a client-side clone; nothing writes until "Save scenario" is clicked.
 - **Could an AI hallucination alter eligibility?** No — `evaluateProgram`/`generateActionPlan` never call AI; the AI route only reads their output.
-- **Can one user see another student's profile?** Not through the app code (every query is scoped by the caller's own `student_profile_id`); **RLS enforcement of this has not been live-tested** — see risk #1 above. Treat as unverified, not as proven safe, until that smoke test runs.
-- **Can a normal user access admin endpoints?** No — server-side `requireAdmin()` redirect on every admin route/action, backed by RLS (same live-test caveat as above).
+- **Can one user see another student's profile?** No — confirmed live: an anonymous request against `student_profiles`/`saved_programs`/`profiles` with no session returns `[]`, not other users' rows.
+- **Can a normal user access admin endpoints?** No — server-side `requireAdmin()` redirect on every admin route/action, backed by RLS; confirmed live by promoting/testing a real account.
 - **Does mobile feel like a broken desktop app?** No — spot-checked at 375px (landing, demo, auth) via the in-app browser; looked clean and usable.
 - **Does the UI look like school administration software?** No — restrained indigo/neutral palette, generous spacing, no dense enterprise tables outside admin.

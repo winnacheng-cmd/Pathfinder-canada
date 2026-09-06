@@ -56,6 +56,18 @@ export async function signUpAction(
 
   await maybeBootstrapAdmin(data.user.id, parsed.data.email);
 
+  // If the Supabase project has "Confirm email" enabled (the default for a
+  // new project), signUp() creates the user but returns no session — there's
+  // nothing to redirect into yet. Say so explicitly instead of redirecting
+  // to /onboarding and having its auth check silently bounce to /login with
+  // no explanation, which is what happened before this fix.
+  if (!data.session) {
+    return {
+      success:
+        "Account created — check your email for a confirmation link before logging in. (Testing locally? You can turn off \"Confirm email\" in Supabase → Authentication → Sign In / Providers → Email, for faster iteration.)",
+    };
+  }
+
   redirect("/onboarding");
 }
 

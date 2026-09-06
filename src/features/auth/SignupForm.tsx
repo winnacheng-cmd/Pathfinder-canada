@@ -31,7 +31,7 @@ export function SignupForm() {
           At least 8 characters.
         </p>
       </div>
-      <FormMessage error={state?.error} />
+      <FormMessage error={state?.error} success={state?.success} />
       <SubmitButton pendingText="Creating account…">Create account</SubmitButton>
       <p className="text-xs text-muted-foreground text-center">
         By continuing you agree this is a student-owned academic planning tool — see{" "}

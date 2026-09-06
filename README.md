@@ -33,7 +33,9 @@ See `.env.example` for the full list and inline comments. Summary of what each g
 3. Run the migrations (below) against that project — via the Supabase SQL editor (paste each file in `supabase/migrations/` in order) or the Supabase CLI (`supabase link`, then `supabase db push`).
 4. (Optional) set `ADMIN_EMAILS` to your own email *before* your first signup, so your account is auto-assigned `role=admin`. See `docs/DATABASE.md` for why this is a bootstrap convenience, not the production authorization mechanism.
 
-No local Supabase stack (Docker-based `supabase start`) was available in the environment this was built in, so migrations have been written to best practice but not run against a live database — please run a smoke test after connecting a real project. Details in `docs/BUILD_REPORT.md`.
+This has been run end-to-end against a real Supabase project (migrations, seed, signup/onboarding/dashboard, admin, RLS) — see `docs/BUILD_REPORT.md` "Live verification" for exactly what was checked.
+
+**Note on email confirmation:** Supabase's default "Confirm email" setting requires a real inbox before a session is granted, and its shared email sender is rate-limited to 2 emails/hour — fine for a couple of manual test signups, not enough for real traffic. Before real users sign up, configure a custom SMTP provider (Resend, Postmark, etc.) under Supabase's Auth settings.
 
 ## Database migration
 
