@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUserAndProfile } from "@/lib/queries/profile";
 import { APPLICATION_PLAN_PRICE_CAD_CENTS, getStripeClient } from "@/lib/stripe";
+import { getAppUrl } from "@/lib/env";
 
 export const dynamic = "force-dynamic";
 
@@ -25,7 +26,7 @@ export async function POST() {
     return NextResponse.json({ error: "Complete onboarding first." }, { status: 401 });
   }
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const appUrl = getAppUrl();
 
   const session = await stripe.checkout.sessions.create({
     mode: "payment",

@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getAppUrl } from "@/lib/env";
 import {
   requestPasswordResetSchema,
   signInSchema,
@@ -89,7 +90,7 @@ export async function requestPasswordResetAction(
   if (!parsed.success) return { error: "Enter a valid email address." };
 
   const supabase = await createClient();
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const appUrl = getAppUrl();
   const { error } = await supabase.auth.resetPasswordForEmail(parsed.data.email, {
     redirectTo: `${appUrl}/reset-password/confirm`,
   });
