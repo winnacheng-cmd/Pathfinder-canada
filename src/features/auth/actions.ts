@@ -48,6 +48,17 @@ export async function signUpAction(
   const { data, error } = await supabase.auth.signUp({
     email: parsed.data.email,
     password: parsed.data.password,
+    options: {
+      // Without this, Supabase falls back to the project's "Site URL"
+      // setting, which defaults to http://localhost:3000 at project
+      // creation and doesn't auto-update when you deploy — so every
+      // confirmation email points at a localhost server that isn't
+      // running on whoever clicks the link. Same class of bug this
+      // codebase already hit once with NEXT_PUBLIC_APP_URL (see
+      // docs/BUILD_REPORT.md), same fix: never trust a fallback default
+      // for a value the deploy target changes.
+      emailRedirectTo: `${getAppUrl()}/onboarding`,
+    },
   });
   if (error) return { error: error.message };
   if (!data.user) {
